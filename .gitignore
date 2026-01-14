@@ -1,0 +1,28 @@
+# Node modules (if you ever use npm packages)
+node_modules/
+
+# Screeps local cache (if any)
+.screeps/
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Optional: Ignore specific config files if they contain API keys
+# screeps.json
+# .screepsrc
