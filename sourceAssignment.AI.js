@@ -1,3 +1,5 @@
+var roomIntel = require('roomIntel');
+
 var sourceAssignment = {
     assignSource: function (roomName) {
         var room = Game.rooms[roomName];
@@ -5,52 +7,51 @@ var sourceAssignment = {
             return '';
         }
 
-        var sources = room.find(FIND_SOURCES);
-        var source0 = sources[0].id;
-        var source1 = sources[1].id;
-        var source2 = sources[2].id;
-        var source3 = sources[3].id;
-        //var source4 = sources[4].id;
-        
-        // Max creeps per source (if needed) max planned creeps is 12
-        var maxCreepsSource0 = 4;
-        var maxCreepsSource1 = 6; 
-        var maxCreepsSource2 = 0; 
-        var maxCreepsSource3 = 2; 
-        //var maxCreepsSource4 = 0;
-        
-        // array of creeps assigned to each source
-        var source0Creeps = _.filter(Game.creeps, (creep) => creep.memory.sourceId == source0);
-        var source1Creeps = _.filter(Game.creeps, (creep) => creep.memory.sourceId == source1);
-        var source2Creeps = _.filter(Game.creeps, (creep) => creep.memory.sourceId == source2);
-        var source3Creeps = _.filter(Game.creeps, (creep) => creep.memory.sourceId == source3);
-        //var source4Creeps = _.filter(Game.creeps, (creep) => creep.memory.sourceId == source4);
-            
-        console.log('source0Creeps: ' + source0Creeps.length + ' source1Creeps: ' + source1Creeps.length + ' source2Creeps: ' + source2Creeps.length +' source3Creeps: ' + source3Creeps.length);
-            
-        // Spawned creep will be assigned to these sources
-        var assignedSource = '';
-        if (source0Creeps.length < maxCreepsSource0) {
-            console.log('source0Creeps: ' + source0Creeps.length + ' < maxCreepsSource0: ' + maxCreepsSource0+ ' so assigning to Source0.'+source0);
-            assignedSource = source0;
+        var sources = roomIntel.getEffectiveSources(roomName);
+        if (!sources || sources.length === 0) {
+            var liveSources = room.find(FIND_SOURCES);
+            if (!liveSources || liveSources.length === 0) {
+                return '';
+            }
+            return liveSources[0].id;
         }
-        else if (source1Creeps.length < maxCreepsSource1) {
-            console.log('source1Creeps: ' + source1Creeps.length + ' < maxCreepsSource1: ' + maxCreepsSource1+ ' so assigning to Source1.'+source1);
-            assignedSource = source1;
+
+        var sourceCounts = {};
+        for (var i = 0; i < sources.length; i++) {
+            sourceCounts[sources[i].id] = 0;
         }
-        else if (source2Creeps.length < maxCreepsSource2) {
-            console.log('source2Creeps: ' + source2Creeps.length + ' < maxCreepsSource2: ' + maxCreepsSource2 + ' so assigning to Source2: ' +source2);
-            assignedSource = source2;
+
+        for (var creepName in Game.creeps) {
+            var creep = Game.creeps[creepName];
+            var sourceId = creep.memory && creep.memory.sourceId;
+            if (sourceId && Object.prototype.hasOwnProperty.call(sourceCounts, sourceId)) {
+                sourceCounts[sourceId]++;
+            }
         }
-        else if (source3Creeps.length < maxCreepsSource3) {
-            console.log('source3Creeps: ' + source3Creeps.length + ' < maxCreepsSource3: ' + maxCreepsSource3+ ' so assigning to Source3.'+source3);
-            assignedSource = source3;
+
+        for (var j = 0; j < sources.length; j++) {
+            var source = sources[j];
+            var currentAssigned = sourceCounts[source.id] || 0;
+            var desired = typeof source.desiredCreeps === 'number' ? source.desiredCreeps : 1;
+            if (currentAssigned < desired) {
+                console.log('[SourceAssign] room=' + roomName + ' source=' + source.id + ' assigned=' + currentAssigned + '/' + desired);
+                return source.id;
+            }
         }
-/*        else if (source4Creeps.length < maxCreepsSource4) {
-            console.log('source4Creeps: ' + source4Creeps.length + ' < maxCreepsSource4: ' + maxCreepsSource4+ ' so assigning to Source4.'+source4);
-            assignedSource = source4;
-        } */
-        return assignedSource;
+
+        var leastLoadedSource = sources[0];
+        var leastCount = sourceCounts[leastLoadedSource.id] || 0;
+        for (var k = 1; k < sources.length; k++) {
+            var candidate = sources[k];
+            var candidateCount = sourceCounts[candidate.id] || 0;
+            if (candidateCount < leastCount) {
+                leastLoadedSource = candidate;
+                leastCount = candidateCount;
+            }
+        }
+
+        console.log('[SourceAssign] room=' + roomName + ' all sources at desired cap, fallback=' + leastLoadedSource.id + ' assigned=' + leastCount);
+        return leastLoadedSource.id;
     }        
  }            
 module.exports = sourceAssignment;

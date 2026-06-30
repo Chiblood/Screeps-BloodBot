@@ -147,6 +147,24 @@ sourceAI.assignSource();
 for(var name in Game.creeps) {
     console.log(name + ' -> ' + Game.creeps[name].memory.sourceId);
 }
+
+// Show canonical source intel for a room
+require('roomIntel').getRoomSources('W1N1');
+
+// Show effective source intel (includes per-source overrides)
+require('roomIntel').getEffectiveSources('W1N1');
+
+// Set per-source override (replace with your source id)
+Memory.sourceConfig['SOURCE_ID_HERE'] = { desiredCreepsOverride: 8 };
+
+// Clear per-source override
+delete Memory.sourceConfig['SOURCE_ID_HERE'];
+
+// Show desired creep config for each source in a room
+var intel = require('roomIntel').getEffectiveSources('W1N1');
+for (var i = 0; i < intel.length; i++) {
+    console.log(intel[i].id + ' free=' + intel[i].freeSlots + ' desired=' + intel[i].desiredCreeps);
+}
 ```
 
 ## Market & Economy (Advanced)

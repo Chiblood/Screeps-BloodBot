@@ -117,7 +117,14 @@ Each scanned room contains:
         {
             id: "source_id",
             pos: { x: 10, y: 20 },
-            energyCapacity: 3000
+            energyCapacity: 3000,
+            freeSlots: 5,
+            desiredCreeps: 6,
+            computedFrom: {
+                homeRoom: "W1N1",
+                roomDistance: 1,
+                scannedAt: 12345
+            }
         }
     ],
     sourceCount: 2,
@@ -148,6 +155,27 @@ Each scanned room contains:
     
     status: "owned"  // owned, enemy, neutral, reserved, hostile, highway
 }
+```
+
+### Source Capacity Model
+
+- `freeSlots`: count of non-wall adjacent tiles around a source.
+- `desiredCreeps`: default formula is `freeSlots + roomDistanceFromHome`.
+- `roomDistanceFromHome`: computed using room linear distance from `Memory.homeRoomName`.
+- Per-source override: `Memory.sourceConfig[sourceId].desiredCreepsOverride`.
+
+If an override exists, effective desired creeps for that source uses the override immediately.
+
+### Source Array Helpers
+
+```javascript
+var intel = require('roomIntel');
+
+// Canonical cached sources from Memory.intel.rooms[roomName].sources
+var canonicalSources = intel.getRoomSources('W1N1');
+
+// Effective sources with override layer applied
+var effectiveSources = intel.getEffectiveSources('W1N1');
 ```
 
 ## Console Commands

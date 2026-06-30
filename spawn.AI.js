@@ -39,7 +39,7 @@ var spawnAI = {
                     var newName = roleName.charAt(0).toUpperCase() + roleName.slice(1) + Game.time;
                     var result = spawn.createCustomCreep(roleName, newName);
 
-                    if (result == OK) {
+                    if (typeof result === 'string' || result == OK) {
                         console.log('Spawning new ' + roleName + ': ' + newName + ' from ' + spawn.name);
                         roleCounts[roleName]++;
                     }
