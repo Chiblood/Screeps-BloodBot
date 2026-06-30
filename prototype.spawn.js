@@ -1,4 +1,4 @@
-var sourceAssignment = require ('sourceAssignment.AI');
+var sourceAssignment = require('sourceAssignment.AI');
 
 module.exports = function () { 
     
@@ -8,7 +8,7 @@ module.exports = function () {
         function (roleName, newName) {
             
             console.log('Running createCustomCreep.');
-            var energyPool = Game.spawns.Spawn1.room.energyCapacityAvailable;
+            var energyPool = this.room.energyCapacityAvailable;
             var maxParts = Math.floor(energyPool / 200);
             var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
             
@@ -16,7 +16,7 @@ module.exports = function () {
             
             // The desired parts for an average energy collecting creep, special case at start, copied from th_pion tutorial
             var desiredParts = [];
-            if (Game.spawns.Spawn1.room.energyCapacityAvailable == 300 || harvesters.length == 0) {
+            if (this.room.energyCapacityAvailable == 300 || harvesters.length == 0) {
                 desiredParts = [WORK, CARRY,CARRY, MOVE, MOVE];
             }
             else {
@@ -32,7 +32,7 @@ module.exports = function () {
                 }
             }
             console.log('The desiredParts are: '+desiredParts);
-            var assignedSource = sourceAssignment.assignSource();
+            var assignedSource = sourceAssignment.assignSource(this.room.name);
             return this.createCreep(desiredParts, newName, {role:roleName, sourceId: assignedSource});
         };
 };

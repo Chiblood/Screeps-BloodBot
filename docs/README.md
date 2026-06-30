@@ -4,7 +4,7 @@ A JavaScript-based bot for the Screeps MMO strategy game.
 
 ## Documentation
 
-?? **Guides:**
+**Guides:**
 - [Room Intel Usage](roomIntel-usage.md) - How to use the intelligence system
 - [CPU Management](cpu-management.md) - CPU optimization strategies
 - [Console Commands](console-commands.md) - Quick reference for console commands
@@ -34,24 +34,6 @@ console.log('Memory:', RawMemory.get().length, '/ 2097152 bytes');
 3. **Batch operations**: Process similar tasks together
 4. **Early returns**: Exit functions early when conditions aren't met
 5. **Clean memory**: Remove dead creeps regularly (already implemented)
-
-## Project Structure
-```
-/roles/              - Creep behavior modules
-  role.harvester.js
-  role.upgrader.js
-  role.builder.js
-  role.repairer.js
-  role.defense.js
-/core/               - Core systems
-  spawn.AI.js           - Spawn management
-  prototype.spawn.js    - Spawn extensions
-  sourceAssignment.AI.js - Source allocation
-/intel/              - Intelligence & scouting
-  roomIntel.js          - Room scanning & data cache
-/docs/               - Documentation (not uploaded)
-main.js              - Main game loop
-```
 
 ## Current Roles
 - **Harvester**: Energy collection

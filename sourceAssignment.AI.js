@@ -1,6 +1,11 @@
- var sourceAssignment = {
-     assignSource: function () {
-        var sources = Game.spawns.Spawn1.room.find(FIND_SOURCES);
+var sourceAssignment = {
+    assignSource: function (roomName) {
+        var room = Game.rooms[roomName];
+        if (!room) {
+            return '';
+        }
+
+        var sources = room.find(FIND_SOURCES);
         var source0 = sources[0].id;
         var source1 = sources[1].id;
         var source2 = sources[2].id;

@@ -1,10 +1,10 @@
-var spawnAI = require('core.spawn.AI');
-var roleHarvester = require('roles.role.harvester');
-var roleUpgrader = require('roles.role.upgrader');
-var roleBuilder = require('roles.role.builder');
-var roleRepairer = require('roles.role.repairer');
-var roleDefender = require('roles.role.defense');
-var roomIntel = require('intel.roomIntel');
+var spawnAI = require('spawn.AI');
+var roleHarvester = require('role.harvester');
+var roleUpgrader = require('role.upgrader');
+var roleBuilder = require('role.builder');
+var roleRepairer = require('role.repairer');
+var roleDefender = require('role.defense');
+var roomIntel = require('roomIntel');
 
 module.exports.loop = function () {
     
@@ -21,6 +21,8 @@ spawnAI.run();
               console.log('Clearing non-existing creep memory:', name);
           }
     }
+
+    // Run creep roles
     for(var name in Game.creeps) {
         var creep = Game.creeps[name];
         if(creep.memory.role == 'harvester') {
