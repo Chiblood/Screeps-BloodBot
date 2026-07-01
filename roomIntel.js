@@ -1,5 +1,3 @@
-var sourceIntel = require('sourceIntel');
-
 var roomIntel = {
     
 // How often to refresh room data (in ticks)
@@ -7,11 +5,8 @@ SCAN_INTERVAL: 500,
     
 // CPU threshold - only scan if we have this much CPU remaining
 CPU_THRESHOLD: 10,
-
-    /**
-     * Initialize intel/source memory structures when missing.
-     * @returns {void}
-     */
+    
+    // Initialize Memory structure if it doesn't exist
     init: function() {
         if (!Memory.intel) {
             Memory.intel = {
@@ -19,25 +14,17 @@ CPU_THRESHOLD: 10,
                 lastGlobalScan: 0
             };
         }
-        sourceIntel.initMemory();
     },
     
-    /**
-     * Scan a room with vision and cache the snapshot in Memory.intel.
-     * @param {string} roomName Room name to scan.
-     * @returns {Object|null} Cached room intel or null if room is not visible.
-     */
+    // Scan a specific room and cache the data
     scanRoom: function(roomName) {
         var room = Game.rooms[roomName];
         if (!room) {
             console.log('[Intel] Cannot scan room ' + roomName + ' - no vision');
             return null;
         }
-
-        this.init();
         
         var sources = room.find(FIND_SOURCES);
-        var sourceData = sourceIntel.buildSourceData(room, roomName, Game.time, this.getRoomDistance.bind(this));
         var minerals = room.find(FIND_MINERALS);
         var controller = room.controller;
         var hostiles = room.find(FIND_HOSTILE_CREEPS);
@@ -48,7 +35,11 @@ CPU_THRESHOLD: 10,
             scannedAt: Game.time,
             
             // Source information
-            sources: sourceData,
+            sources: sources.map(s => ({
+                id: s.id,
+                pos: { x: s.pos.x, y: s.pos.y },
+                energyCapacity: s.energyCapacity
+            })),
             sourceCount: sources.length,
             
             // Mineral information
@@ -91,46 +82,8 @@ CPU_THRESHOLD: 10,
         
         return roomData;
     },
-
-    /**
-     * Return canonical source intel array for a room.
-     * @param {string} roomName Room to read from intel.
-     * @returns {Object[]} Source intel entries for the room.
-     */
-    getRoomSources: function(roomName) {
-        this.init();
-        var roomData = this.getRoomData(roomName);
-        if (roomData && roomData.sources) {
-            return roomData.sources;
-        }
-
-        if (Game.rooms[roomName]) {
-            var scanned = this.scanRoom(roomName);
-            if (scanned && scanned.sources) {
-                return scanned.sources;
-            }
-        }
-
-        return [];
-    },
-
-    /**
-     * Return source intel with live override values applied.
-     * @param {string} roomName Room to build effective source list for.
-     * @returns {Object[]} Effective source intel entries.
-     */
-    getEffectiveSources: function(roomName) {
-        var canonicalSources = this.getRoomSources(roomName);
-        return sourceIntel.getEffectiveSources(roomName, canonicalSources, this.getRoomDistance.bind(this));
-    },
     
-    /**
-     * Determine high-level room status for reporting.
-     * @param {Room} room Visible room object.
-     * @param {StructureController|null} controller Room controller, if present.
-     * @param {Creep[]} hostiles Hostile creeps currently detected.
-     * @returns {string} Status value: hostile/highway/owned/enemy/reserved/neutral.
-     */
+    // Determine room status
     getRoomStatus: function(room, controller, hostiles) {
         if (hostiles.length > 0) return 'hostile';
         if (!controller) return 'highway';
@@ -140,11 +93,7 @@ CPU_THRESHOLD: 10,
         return 'neutral';
     },
     
-    /**
-     * Read cached room intel from memory.
-     * @param {string} roomName Room name key.
-     * @returns {Object|null} Cached intel entry or null.
-     */
+    // Get cached room data
     getRoomData: function(roomName) {
         this.init();
         if (Memory.intel.rooms && Memory.intel.rooms[roomName]) {
@@ -153,12 +102,7 @@ CPU_THRESHOLD: 10,
         return null;
     },
     
-    /**
-     * Build a square list of nearby room names around a center room.
-     * @param {string} roomName Center room name.
-     * @param {number} range Radius in room coordinates.
-     * @returns {string[]} Room names in range.
-     */
+    // Get all nearby room names (Screeps room naming convention)
     getNearbyRoomNames: function(roomName, range) {
         var rooms = [];
         var parsed = this.parseRoomName(roomName);
@@ -175,11 +119,7 @@ CPU_THRESHOLD: 10,
         return rooms;
     },
     
-    /**
-     * Parse a room name into directional coordinate parts.
-     * @param {string} roomName Room name like W1N1.
-     * @returns {{xDir: string, x: number, yDir: string, y: number}|null} Parsed room parts or null when invalid.
-     */
+    // Parse room name (e.g., "W1N1" -> {x: 1, xDir: 'W', y: 1, yDir: 'N'})
     parseRoomName: function(roomName) {
         var match = roomName.match(/^([WE])(\d+)([NS])(\d+)$/);
         if (!match) return null;
@@ -191,24 +131,12 @@ CPU_THRESHOLD: 10,
         };
     },
     
-    /**
-     * Build room name from directional coordinate pieces.
-     * @param {number} x X coordinate value.
-     * @param {string} xDir X direction (W/E).
-     * @param {number} y Y coordinate value.
-     * @param {string} yDir Y direction (N/S).
-     * @returns {string} Room name.
-     */
+    // Build room name from coordinates
     buildRoomName: function(x, xDir, y, yDir) {
         return xDir + x + yDir + y;
     },
     
-    /**
-     * Calculate linear room distance between two room names.
-     * @param {string} roomName1 Origin room.
-     * @param {string} roomName2 Destination room.
-     * @returns {number} Linear distance or Infinity for invalid room names.
-     */
+    // Calculate linear distance between two rooms
     getRoomDistance: function(roomName1, roomName2) {
         var parsed1 = this.parseRoomName(roomName1);
         var parsed2 = this.parseRoomName(roomName2);
@@ -222,11 +150,7 @@ CPU_THRESHOLD: 10,
         return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
     },
     
-    /**
-     * Return cached scanned rooms with optional filtering.
-     * @param {{status?: string, minSources?: number, maxDistance?: number, fromRoom?: string}=} filters Optional room filters.
-     * @returns {Object[]} Matching room intel entries.
-     */
+    // Get all scanned rooms with optional filters
     getScannedRooms: function(filters) {
         this.init();
         var rooms = [];
@@ -250,10 +174,7 @@ CPU_THRESHOLD: 10,
         return rooms;
     },
     
-    /**
-     * Refresh stale intel for visible rooms.
-     * @returns {void}
-     */
+    // Update intel for all visible rooms
     updateVisibleRooms: function() {
         this.init();
         var scannedCount = 0;
@@ -275,11 +196,7 @@ CPU_THRESHOLD: 10,
         Memory.intel.lastGlobalScan = Game.time;
     },
     
-    /**
-     * Refresh visible rooms when sufficient CPU headroom is available.
-     * @param {number=} cpuThreshold Minimum CPU headroom required.
-     * @returns {{skipped?: boolean, reason?: string, cpuAvailable?: number, threshold?: number, scanned?: number, cpuCost?: number}}
-     */
+    // CPU-aware update - only scans if CPU is available
     updateVisibleRoomsIfCPU: function(cpuThreshold) {
         var threshold = cpuThreshold || this.CPU_THRESHOLD;
         var cpuUsed = Game.cpu.getUsed();
@@ -332,11 +249,7 @@ CPU_THRESHOLD: 10,
         };
     },
     
-    /**
-     * Prioritize oldest intel first and stop scanning when CPU gets low.
-     * @param {number=} cpuThreshold Minimum CPU headroom required.
-     * @returns {{skipped?: boolean, reason?: string, scanned?: number, queued?: number, cpuCost?: number}}
-     */
+    // Smart update - prioritizes stale data and stops when CPU runs low
     updateWithPriority: function(cpuThreshold) {
         var threshold = cpuThreshold || this.CPU_THRESHOLD;
         var cpuUsed = Game.cpu.getUsed();
@@ -391,12 +304,7 @@ CPU_THRESHOLD: 10,
         };
     },
     
-    /**
-     * Print a console report of nearby room intel.
-     * @param {string} homeRoom Origin room for distance calculations.
-     * @param {number} range Range of nearby rooms to include.
-     * @returns {Array<{room: string, distance: number, data: Object}>} Report rows for scanned rooms.
-     */
+    // Generate a report of nearby rooms
     generateReport: function(homeRoom, range) {
         this.init();
         var nearbyRooms = this.getNearbyRoomNames(homeRoom, range);

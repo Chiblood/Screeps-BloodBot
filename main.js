@@ -6,24 +6,7 @@ var roleRepairer = require('role.repairer');
 var roleDefender = require('role.defense');
 var roomIntel = require('roomIntel');
 
-function initializeRuntimeMemory() {
-    if (!Memory.sourceConfig) {
-        Memory.sourceConfig = {};
-    }
-
-    if (!Memory.homeRoomName) {
-        for (var spawnName in Game.spawns) {
-            var spawn = Game.spawns[spawnName];
-            if (spawn && spawn.room && spawn.room.name) {
-                Memory.homeRoomName = spawn.room.name;
-                break;
-            }
-        }
-    }
-}
-
 module.exports.loop = function () {
-    initializeRuntimeMemory();
     
 // Defense call (high priority)
 roleDefender.defendMe();

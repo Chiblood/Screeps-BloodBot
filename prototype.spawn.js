@@ -32,7 +32,13 @@ module.exports = function () {
                 }
             }
             console.log('The desiredParts are: '+desiredParts);
-            var assignedSource = sourceAssignment.assignSource(this.room.name);
+            var assignedSource = '';
+            try {
+                assignedSource = sourceAssignment.assignSource(this.room.name);
+            }
+            catch (err) {
+                console.log('assignSource failed in room ' + this.room.name + ': ' + err);
+            }
             return this.createCreep(desiredParts, newName, {role:roleName, sourceId: assignedSource});
         };
 };
