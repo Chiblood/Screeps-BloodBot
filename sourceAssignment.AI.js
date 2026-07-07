@@ -7,12 +7,25 @@ var sourceAssignment = {
 
         var sources = room.find(FIND_SOURCES);
 
+        // Keep source indexes stable across ticks by ordering on source.id.
+        sources = _.sortBy(sources, function (source) {
+            return source.id;
+        });
+
         if (sources.length === 0) {
             return '';
         }
 
-        // Max creeps per source index.
-        var maxCreepsBySourceIndex = [4, 6, 0, 2];
+        // Exact caps by source.id (stable and explicit).
+        // Fill these with the source IDs from your room(s).
+        var maxCreepsBySourceId = {
+            '5bbcaa0b9099fc012e630b36': 4
+            // 'SOURCE_ID_2': 6,
+            // 'SOURCE_ID_3': 2
+        };
+
+        // If a source.id is missing above, this fallback is used.
+        var defaultMaxCreepsPerSource = 0;
 
         // Build source occupancy data without assuming a fixed source count.
         var sourceData = _.map(sources, function (source, index) {
@@ -24,7 +37,9 @@ var sourceAssignment = {
                 id: source.id,
                 index: index,
                 assignedCount: assignedCreeps.length,
-                maxCount: maxCreepsBySourceIndex[index] || 0
+                maxCount: Object.prototype.hasOwnProperty.call(maxCreepsBySourceId, source.id)
+                    ? maxCreepsBySourceId[source.id]
+                    : defaultMaxCreepsPerSource
             };
         });
 

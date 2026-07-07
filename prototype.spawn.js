@@ -1,6 +1,14 @@
 var sourceAssignment = require('sourceAssignment.AI');
 
 module.exports = function () { 
+    var spawnErrorText = {};
+    spawnErrorText[OK] = 'OK';
+    spawnErrorText[ERR_NOT_OWNER] = 'ERR_NOT_OWNER';
+    spawnErrorText[ERR_NAME_EXISTS] = 'ERR_NAME_EXISTS';
+    spawnErrorText[ERR_BUSY] = 'ERR_BUSY';
+    spawnErrorText[ERR_NOT_ENOUGH_ENERGY] = 'ERR_NOT_ENOUGH_ENERGY';
+    spawnErrorText[ERR_INVALID_ARGS] = 'ERR_INVALID_ARGS';
+    spawnErrorText[ERR_RCL_NOT_ENOUGH] = 'ERR_RCL_NOT_ENOUGH';
     
     /** @param {roleName, newName} roleName ex 'harvester', 'builder', ect; newName = creep Name **/
     
@@ -21,13 +29,13 @@ module.exports = function () {
             }
             else {
                 while(energyPool >0) {
-                    desiredParts.push('WORK');
+                    desiredParts.push(WORK);
                     energyPool -= 100;
                     if (energyPool == 0) break;
-                    desiredParts.push('MOVE');
+                    desiredParts.push(MOVE);
                     energyPool -= 50;
                     if (energyPool == 0) break;
-                    desiredParts.push('CARRY');
+                    desiredParts.push(CARRY);
                     energyPool -= 50;
                 }
             }
@@ -39,6 +47,18 @@ module.exports = function () {
             catch (err) {
                 console.log('assignSource failed in room ' + this.room.name + ': ' + err);
             }
+
+            // Validate spawn request before creating creep to get a clear failure reason.
+            var canCreateResult = this.canCreateCreep(desiredParts, newName);
+            if (canCreateResult !== OK) {
+                console.log('[SpawnCheck] Cannot spawn ' + newName + ' in ' + this.room.name +
+                    ' | role: ' + roleName +
+                    ' | code: ' + canCreateResult +
+                    ' (' + (spawnErrorText[canCreateResult] || 'UNKNOWN') + ')' +
+                    ' | body: ' + desiredParts.join(','));
+                return canCreateResult;
+            }
+
             return this.createCreep(desiredParts, newName, {role:roleName, sourceId: assignedSource});
         };
 };

@@ -6,13 +6,15 @@ var roleRepairer = require('role.repairer');
 var roleDefender = require('role.defense');
 var roomIntel = require('roomIntel');
 
+var PIXEL_INTERVAL = 25;
+
 module.exports.loop = function () {
     
-// Defense call (high priority)
-roleDefender.defendMe();
-    
-// Spawn Controller call (high priority)
-spawnAI.run();
+    // Defense call (high priority)
+    roleDefender.defendMe();
+        
+    // Spawn Controller call (high priority)
+    spawnAI.run();
     
     // Clearing dead creeps from memory
     for(var name in Memory.creeps) {
@@ -42,4 +44,13 @@ spawnAI.run();
     // Update intel only if we have spare CPU (runs at end of tick)
     // Only scans if >10 CPU available (configurable)
     roomIntel.updateVisibleRoomsIfCPU(10);
+    
+    /*
+    if (shouldGeneratePixel()) {
+        var result = Game.cpu.generatePixel();
+        if (result === OK) {
+            console.log('[CPU] Pixel generated at tick ' + Game.time);
+        }
+    }
+    */
 }

@@ -4,7 +4,7 @@ var spawnAI = {
      /** @param {} **/
      run: function() {
         var desiredByRole = {
-            harvester: 6,
+            harvester: 4,
             upgrader: 2,
             builder: 4,
             repairer: 2
@@ -31,6 +31,7 @@ var spawnAI = {
                 continue;
             }
 
+            // Iterate through the spawn order and spawn creeps as needed
             for (var i = 0; i < spawnOrder.length; i++) {
                 var roleName = spawnOrder[i];
 
