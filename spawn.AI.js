@@ -6,8 +6,8 @@ var spawnAI = {
         var desiredByRole = {
             harvester: 4,
             upgrader: 2,
-            builder: 4,
-            repairer: 2
+            builder: 2,
+            repairer: 1
         };
 
         var roleCounts = {
@@ -24,10 +24,6 @@ var spawnAI = {
             var roomSpawns = _.filter(Game.spawns, (spawn) => spawn.room.name == roomName && !spawn.spawning);
 
             if (roomSpawns.length == 0) {
-                continue;
-            }
-
-            if (room.energyAvailable != room.energyCapacityAvailable) {
                 continue;
             }
 

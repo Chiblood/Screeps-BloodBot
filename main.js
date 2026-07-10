@@ -4,9 +4,10 @@ var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
 var roleRepairer = require('role.repairer');
 var roleDefender = require('role.defense');
+var roomConstruction = require('room.construction');
 var roomIntel = require('roomIntel');
 
-var PIXEL_INTERVAL = 25;
+//var PIXEL_INTERVAL = 25;
 
 module.exports.loop = function () {
     
@@ -15,6 +16,8 @@ module.exports.loop = function () {
         
     // Spawn Controller call (high priority)
     spawnAI.run();
+
+    roomConstruction.run();
     
     // Clearing dead creeps from memory
     for(var name in Memory.creeps) {

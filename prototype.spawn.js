@@ -16,15 +16,18 @@ module.exports = function () {
         function (roleName, newName) {
             
             console.log('Running createCustomCreep.');
-            var energyPool = this.room.energyCapacityAvailable;
-            var maxParts = Math.floor(energyPool / 200);
+            var energyPool = this.room.energyAvailable;
             var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
+
+            if (energyPool < 300) {
+                return ERR_NOT_ENOUGH_ENERGY;
+            }
             
             // Assuming costs 100 for WORK, 50 for CARRY, and 50 for MOVE. Energy Capacity(energyPool) / sum = max # of parts
             
             // The desired parts for an average energy collecting creep, special case at start, copied from th_pion tutorial
             var desiredParts = [];
-            if (this.room.energyCapacityAvailable == 300 || harvesters.length == 0) {
+            if (energyPool < 400 || harvesters.length == 0) {
                 desiredParts = [WORK, CARRY,CARRY, MOVE, MOVE];
             }
             else {
