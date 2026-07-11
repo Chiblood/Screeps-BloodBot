@@ -4,16 +4,24 @@ var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
 var roleRepairer = require('role.repairer');
 var roleDefender = require('role.defense');
+var roleTank = require('role.tank');
+var roleArcher = require('role.archer');
+var roleHealer = require('role.healer');
+var roleRogue = require('role.rogue');
+var squadManager = require('squadManager');
 var roomConstruction = require('room.construction');
 var roomIntel = require('roomIntel');
 
 //var PIXEL_INTERVAL = 25;
 
 module.exports.loop = function () {
-    
+
     // Defense call (high priority)
     roleDefender.defendMe();
-        
+
+    // Advance squad forming/rally/engage state before spawn decisions are made
+    squadManager.run();
+
     // Spawn Controller call (high priority)
     spawnAI.run();
 
@@ -41,6 +49,18 @@ module.exports.loop = function () {
         }
         if(creep.memory.role == 'repairer') {
             roleRepairer.run(creep);
+        }
+        if(creep.memory.role == 'tank') {
+            roleTank.run(creep);
+        }
+        if(creep.memory.role == 'archer') {
+            roleArcher.run(creep);
+        }
+        if(creep.memory.role == 'healer') {
+            roleHealer.run(creep);
+        }
+        if(creep.memory.role == 'rogue') {
+            roleRogue.run(creep);
         }
     }
     

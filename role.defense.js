@@ -13,6 +13,17 @@ var roleDefense = {
                 var username = hostiles[0].owner.username;
             }
 
+            // Reactive-defense trigger signal for spawnAI/squadManager - cheaper
+            // and fresher than roomIntel's 500-tick-stale cache since it reuses
+            // the hostiles find() already done here for the towers.
+            Memory.combat = Memory.combat || {};
+            Memory.combat.threats = Memory.combat.threats || {};
+            Memory.combat.threats[roomName] = {
+                hasThreat: hostiles.length > 0,
+                hostileCount: hostiles.length,
+                updatedAt: Game.time
+            };
+
             var towers = room.find(FIND_MY_STRUCTURES, {
                 filter: function (s) { return s.structureType == STRUCTURE_TOWER; }
             });

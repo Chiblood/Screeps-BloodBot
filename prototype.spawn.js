@@ -1,6 +1,7 @@
 var sourceAssignment = require('sourceAssignment.AI');
+var creepBodies = require('creepBodies');
 
-module.exports = function () { 
+module.exports = function () {
     var spawnErrorText = {};
     spawnErrorText[OK] = 'OK';
     spawnErrorText[ERR_NOT_OWNER] = 'ERR_NOT_OWNER';
@@ -9,46 +10,41 @@ module.exports = function () {
     spawnErrorText[ERR_NOT_ENOUGH_ENERGY] = 'ERR_NOT_ENOUGH_ENERGY';
     spawnErrorText[ERR_INVALID_ARGS] = 'ERR_INVALID_ARGS';
     spawnErrorText[ERR_RCL_NOT_ENOUGH] = 'ERR_RCL_NOT_ENOUGH';
-    
-    /** @param {roleName, newName} roleName ex 'harvester', 'builder', ect; newName = creep Name **/
-    
+
+    // Military roles don't harvest, so they skip sourceAssignment entirely.
+    var militaryRoles = { tank: true, archer: true, healer: true, rogue: true };
+
+    /** @param {roleName, newName, knownHarvesterCount, squadOpts} roleName ex 'harvester', 'tank', etc;
+     * newName = creep Name; squadOpts = {squadId} - optional, tags the new creep into a squad **/
+
     StructureSpawn.prototype.createCustomCreep =
-        function (roleName, newName) {
-            
+        function (roleName, newName, knownHarvesterCount, squadOpts) {
+
             console.log('Running createCustomCreep.');
             var energyPool = this.room.energyAvailable;
-            var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
+            var harvesterCount = typeof knownHarvesterCount === 'number'
+                ? knownHarvesterCount
+                : _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester').length;
 
             if (energyPool < 300) {
                 return ERR_NOT_ENOUGH_ENERGY;
             }
-            
-            // Assuming costs 100 for WORK, 50 for CARRY, and 50 for MOVE. Energy Capacity(energyPool) / sum = max # of parts
-            
-            // The desired parts for an average energy collecting creep, special case at start, copied from th_pion tutorial
-            var desiredParts = [];
-            if (energyPool < 400 || harvesters.length == 0) {
-                desiredParts = [WORK, CARRY,CARRY, MOVE, MOVE];
-            }
-            else {
-                while(energyPool >0) {
-                    desiredParts.push(WORK);
-                    energyPool -= 100;
-                    if (energyPool == 0) break;
-                    desiredParts.push(MOVE);
-                    energyPool -= 50;
-                    if (energyPool == 0) break;
-                    desiredParts.push(CARRY);
-                    energyPool -= 50;
-                }
-            }
+
+            var desiredParts = creepBodies.build(roleName, energyPool, harvesterCount);
             console.log('The desiredParts are: '+desiredParts);
-            var assignedSource = '';
-            try {
-                assignedSource = sourceAssignment.assignSource(this.room.name);
+
+            if (!desiredParts || desiredParts.length === 0) {
+                return ERR_NOT_ENOUGH_ENERGY;
             }
-            catch (err) {
-                console.log('assignSource failed in room ' + this.room.name + ': ' + err);
+
+            var assignedSource = '';
+            if (!militaryRoles[roleName]) {
+                try {
+                    assignedSource = sourceAssignment.assignSource(this.room.name);
+                }
+                catch (err) {
+                    console.log('assignSource failed in room ' + this.room.name + ': ' + err);
+                }
             }
 
             // Validate spawn request before creating creep to get a clear failure reason.
@@ -62,6 +58,12 @@ module.exports = function () {
                 return canCreateResult;
             }
 
-            return this.createCreep(desiredParts, newName, {role:roleName, sourceId: assignedSource});
+            var memory = { role: roleName, sourceId: assignedSource };
+            if (squadOpts && squadOpts.squadId) {
+                memory.squadId = squadOpts.squadId;
+                memory.combatState = 'rally';
+            }
+
+            return this.createCreep(desiredParts, newName, memory);
         };
 };
