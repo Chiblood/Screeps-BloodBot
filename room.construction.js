@@ -112,13 +112,15 @@ var roomConstruction = {
             return false;
         }
 
-        if (!this.isWalkable(room, plan.upgraderAnchor.x, plan.upgraderAnchor.y)) {
+        var terrain = room.getTerrain();
+
+        if (!this.isWalkable(room, plan.upgraderAnchor.x, plan.upgraderAnchor.y, terrain)) {
             return false;
         }
 
         for (var i = 0; i < plan.sourceContainers.length; i++) {
             var containerPos = plan.sourceContainers[i];
-            if (!this.isWalkable(room, containerPos.x, containerPos.y)) {
+            if (!this.isWalkable(room, containerPos.x, containerPos.y, terrain)) {
                 return false;
             }
         }
@@ -127,26 +129,27 @@ var roomConstruction = {
     },
 
     createPlan: function(room, spawns, sources) {
+        var terrain = room.getTerrain();
         var anchorSpawn = spawns[0];
-        var upgraderAnchor = this.chooseUpgraderAnchor(room, anchorSpawn.pos);
+        var upgraderAnchor = this.chooseUpgraderAnchor(room, anchorSpawn.pos, terrain);
         if (!upgraderAnchor) {
             return null;
         }
 
-        var sourceContainers = this.chooseSourceContainers(room, sources, anchorSpawn.pos);
+        var sourceContainers = this.chooseSourceContainers(room, sources, anchorSpawn.pos, terrain);
         if (sourceContainers.length === 0) {
             return null;
         }
 
         var roads = this.buildRoadPlan(room, anchorSpawn.pos, sourceContainers, upgraderAnchor);
         var reserved = this.createReservedMap(room, roads, sourceContainers, upgraderAnchor, null);
-        var storage = this.chooseStoragePosition(room, anchorSpawn.pos, reserved);
+        var storage = this.chooseStoragePosition(room, anchorSpawn.pos, reserved, terrain);
 
         if (storage) {
             reserved[this.posKey(storage.x, storage.y)] = true;
         }
 
-        var extensions = this.generateExtensionCandidates(room, anchorSpawn.pos, reserved);
+        var extensions = this.generateExtensionCandidates(room, anchorSpawn.pos, reserved, terrain);
 
         return {
             upgraderAnchor: upgraderAnchor,
@@ -157,19 +160,19 @@ var roomConstruction = {
         };
     },
 
-    chooseUpgraderAnchor: function(room, anchorPos) {
+    chooseUpgraderAnchor: function(room, anchorPos, terrain) {
         if (!room.controller) {
             return null;
         }
 
-        return this.findBestAdjacentPosition(room, room.controller.pos, anchorPos, null);
+        return this.findBestAdjacentPosition(room, room.controller.pos, anchorPos, null, terrain);
     },
 
-    chooseSourceContainers: function(room, sources, anchorPos) {
+    chooseSourceContainers: function(room, sources, anchorPos, terrain) {
         var positions = [];
 
         for (var i = 0; i < sources.length; i++) {
-            var containerPos = this.findBestAdjacentPosition(room, sources[i].pos, anchorPos, positions);
+            var containerPos = this.findBestAdjacentPosition(room, sources[i].pos, anchorPos, positions, terrain);
             if (containerPos) {
                 positions.push(containerPos);
             }
@@ -178,7 +181,7 @@ var roomConstruction = {
         return positions;
     },
 
-    findBestAdjacentPosition: function(room, targetPos, anchorPos, reservedPositions) {
+    findBestAdjacentPosition: function(room, targetPos, anchorPos, reservedPositions, terrain) {
         var bestPosition = null;
         var bestRange = Infinity;
         var reserved = {};
@@ -205,7 +208,7 @@ var roomConstruction = {
                     continue;
                 }
 
-                if (!this.isWalkable(room, x, y)) {
+                if (!this.isWalkable(room, x, y, terrain)) {
                     continue;
                 }
 
@@ -298,7 +301,7 @@ var roomConstruction = {
         return reserved;
     },
 
-    chooseStoragePosition: function(room, anchorPos, reserved) {
+    chooseStoragePosition: function(room, anchorPos, reserved, terrain) {
         var candidates = this.generateRingPositions(anchorPos, 2, 4);
 
         for (var i = 0; i < candidates.length; i++) {
@@ -309,11 +312,11 @@ var roomConstruction = {
                 continue;
             }
 
-            if (!this.isWalkable(room, candidate.x, candidate.y)) {
+            if (!this.isWalkable(room, candidate.x, candidate.y, terrain)) {
                 continue;
             }
 
-            if (this.hasBlockingStructure(room, candidate.x, candidate.y, STRUCTURE_STORAGE)) {
+            if (this.evaluateTile(room, candidate.x, candidate.y, STRUCTURE_STORAGE).blocked) {
                 continue;
             }
 
@@ -323,7 +326,7 @@ var roomConstruction = {
         return null;
     },
 
-    generateExtensionCandidates: function(room, anchorPos, reserved) {
+    generateExtensionCandidates: function(room, anchorPos, reserved, terrain) {
         var candidates = [];
         var positions = this.generateRingPositions(anchorPos, 2, 8);
 
@@ -335,11 +338,11 @@ var roomConstruction = {
                 continue;
             }
 
-            if (!this.isWalkable(room, candidate.x, candidate.y)) {
+            if (!this.isWalkable(room, candidate.x, candidate.y, terrain)) {
                 continue;
             }
 
-            if (this.hasBlockingStructure(room, candidate.x, candidate.y, STRUCTURE_EXTENSION)) {
+            if (this.evaluateTile(room, candidate.x, candidate.y, STRUCTURE_EXTENSION).blocked) {
                 continue;
             }
 
@@ -388,12 +391,9 @@ var roomConstruction = {
 
         for (var i = 0; i < positions.length && created < remainingBudget; i++) {
             var position = positions[i];
+            var occupancy = this.evaluateTile(room, position.x, position.y, STRUCTURE_ROAD);
 
-            if (this.hasStructureOrSite(room, position.x, position.y, STRUCTURE_ROAD)) {
-                continue;
-            }
-
-            if (this.hasBlockingStructure(room, position.x, position.y, STRUCTURE_ROAD)) {
+            if (occupancy.alreadyPlaced || occupancy.blocked) {
                 continue;
             }
 
@@ -425,12 +425,9 @@ var roomConstruction = {
 
         for (var i = 0; i < plannedPositions.length && created < missingAllowed; i++) {
             var position = plannedPositions[i];
+            var occupancy = this.evaluateTile(room, position.x, position.y, structureType);
 
-            if (this.hasStructureOrSite(room, position.x, position.y, structureType)) {
-                continue;
-            }
-
-            if (this.hasBlockingStructure(room, position.x, position.y, structureType)) {
+            if (occupancy.alreadyPlaced || occupancy.blocked) {
                 continue;
             }
 
@@ -463,44 +460,34 @@ var roomConstruction = {
         return structures + sites;
     },
 
-    hasStructureOrSite: function(room, x, y, structureType) {
+    // Single lookForAt pass per layer (structures + sites) that answers both
+    // "is this exact structure already here" and "is something incompatible
+    // occupying this tile" in one go, instead of the two separate helpers
+    // this replaces, which each re-ran both lookForAt calls independently.
+    evaluateTile: function(room, x, y, structureType) {
+        var alreadyPlaced = false;
+        var blocked = false;
+
         var structures = room.lookForAt(LOOK_STRUCTURES, x, y);
         for (var i = 0; i < structures.length; i++) {
-            if (structures[i].structureType === structureType) {
-                return true;
+            var existingType = structures[i].structureType;
+            if (existingType === structureType) {
+                alreadyPlaced = true;
+            } else if (!this.canShareTile(existingType, structureType)) {
+                blocked = true;
             }
         }
 
         var sites = room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y);
         for (var j = 0; j < sites.length; j++) {
             if (sites[j].structureType === structureType) {
-                return true;
+                alreadyPlaced = true;
+            } else {
+                blocked = true;
             }
         }
 
-        return false;
-    },
-
-    hasBlockingStructure: function(room, x, y, structureType) {
-        var structures = room.lookForAt(LOOK_STRUCTURES, x, y);
-        for (var i = 0; i < structures.length; i++) {
-            if (this.canShareTile(structures[i].structureType, structureType)) {
-                continue;
-            }
-
-            return true;
-        }
-
-        var sites = room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y);
-        for (var j = 0; j < sites.length; j++) {
-            if (sites[j].structureType === structureType) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
+        return { alreadyPlaced: alreadyPlaced, blocked: blocked };
     },
 
     canShareTile: function(existingType, plannedType) {
@@ -520,8 +507,9 @@ var roomConstruction = {
         return false;
     },
 
-    isWalkable: function(room, x, y) {
-        if (room.getTerrain().get(x, y) === TERRAIN_MASK_WALL) {
+    isWalkable: function(room, x, y, terrain) {
+        var roomTerrain = terrain || room.getTerrain();
+        if (roomTerrain.get(x, y) === TERRAIN_MASK_WALL) {
             return false;
         }
 
